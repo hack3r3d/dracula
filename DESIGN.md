@@ -11,6 +11,7 @@ Counter {
     createdAt: '2024-12-18T00:15:49.992+00:00',
     updatedAt: '2024-12-18T00:15:52.231+00:00',
     collatorId: '066C2B81-8859-4922-90A1-BA197B3F20DC',
+    position: 0,
     meta: [{
       course: 'Seneca Creek',
       city: 'Gaithersburg',
@@ -25,9 +26,24 @@ Counter {
 }
 ```
 
-Then in the application, if you're building something like a disc golf scoring application and you want to track scores for each hole in a round, you would create multiple counters - one for each hole. The key piece of data to make this work is the collatorId. That's a UUID that the application creates and assigns to counter objects. This will allow the application to be able to retrieve the counters as a collection of counters, which is what a disc golf scorecard would require if tracking scores per hole.
+Then in the application, if you're building something like a disc golf scoring application and you want to track scores for each hole in a round, you would create multiple counters - one for each hole. The key piece of data to make this work is the collatorId and position. The collatorId is a UUID that the application creates and assigns to counter objects. The position is also created by the application. It must be a unique number for the provided collatorId. Position doesn't need to indicate sort or priority within the collection of counters, but it could, it depends on the application. The collatorId and position are the two key data points necessary to retrieve a specific counter from a collection.
 
-But even if you're creating only a simple single counter, your application must still provide a collatorId because it is how you will retrieve all counters. 
+But even if you're creating only a simple single counter, your application must still provide a collatorId and position because it is how you will retrieve all counters. 
+
+## API
+The API consists of a couple of basically CRUD functions.
+
+### createCounter(counterId, [data])
+Create counter using the application provided counterId. Creating multiple counters with the same counterId, groups them together as a collection of counters. If data is provided, it gets saved on the counter as meta data.
+
+### updateCounter(counterId, position, count, [data])
+This updates a counter in the collection associated with the provided counterId at the provided position with the new count value. If data is provided, gets saved on the counter 
+
+### getCounter(counterId, position)
+Get a specific counter using counterId and position, returns a counter document.
+
+### getCounters(counterId)
+Gets all of the counters with that counterId. Returns an array of counter documents.
 
 ## History
 
