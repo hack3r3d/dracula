@@ -33,20 +33,73 @@ But even if you're creating only a simple single counter, your application must 
 ## API
 The API consists of a couple of basically CRUD functions.
 
-### createCounter(counterId, [data])
-Create counter using the application provided counterId. Creating multiple counters with the same counterId, groups them together as a collection of counters. If data is provided, it gets saved on the counter as meta data.
+### createCounter([data]) returns counterId
+Create counter apply data to new counter document and return a UUID.
 
-### updateCounter(counterId, position, count, [data])
-This updates a counter in the collection associated with the provided counterId at the provided position with the new count value. If data is provided, gets saved on the counter 
+### count(counterId,  count, [data])
+This updates a counter in the collection associated with the provided counterId. If data is provided, data gets saved on the counter count being saved.
 
-### getCounter(counterId, position)
-Get a specific counter using counterId and position, returns a counter document.
+### getCounter(counterId)
+Gets all of the counter counts sorted by position with oldest first.
 
-### getCounters(counterId)
-Gets all of the counters with that counterId. Returns an array of counter documents.
+## Document
+A counter is a collection of counter documents collated together with a unique id - counterId. 
 
-## History
+In the database the data might look something like this.
+```
+{
+    counterId: '1234',
+    count: 0,
+    position: 0,
+    meta: {
+        courseName: 'Seneca Creek Disc Golf Course',
+        temperature: 56
+    }
+}
 
-I've been working on this problem on the side for several years. I've written at least two applications to solve this seemingly simple problem, but none of my solutions ever felt right. 
+{
+    counterId: '1234',
+    count: 1,
+    position: 1,
+    meta: {
+        hole: 1,
+        tee: 'blue',
+        basket: 'A',
+        distance: 188,
+        disc: 'Champion Roc 3'
+    }
+}
 
-I believe this is actually a super simple problem to solve and the solution should be simple. So far, this is the simplest solution I can concoct and still be solving a problem. It's really just some basic document management using an ID that groups documents together create a relationship between counters. If I didn't have the collatorId, it would be up to the application to maintain that relationship and I just don't think that's a good way to go. It would end up with a bunch of basically orphaned counter documents that are largely useless if the application loses the collation data. While MongoDB is not a relational database, collating documents using an ID seems appropriate.
+{
+    counterId: '1234',
+    count: 2,
+    position: 2,
+    meta: {
+        hole: 1,
+        tee: 'blue',
+        basket: 'A',
+        distance: 143,
+        disc: 'Kratos'
+    }
+}
+
+
+{
+    counterId: '1234',
+    count: 3,
+    position: 3,
+    meta: {
+        hole: 1,
+        tee: 'blue',
+        basket: 'A',
+        distance: 18,
+        disc: 'Judge'
+    }
+}
+```
+Obviously, the meta data is whatever the application wants to persist for a given counter. In the above use case, what is saved here is the score for one player on hole 1 at a disc golf course called Seneca Creek Disc Golf Course. 
+
+The first counter record is basically creating the counter with a count of 0. In the context of a disc golf scorecard, at this stage, a scorecard has been created but a disc has to yet to be thrown and recorded.
+
+The position data point is used to keep track of the order in which counts are saved to the database. All of these database records will have createdAt and updatedAt fields, but I feel like a specific feild to track effectively order of counter counts is more accurate. It's possible that more than one count for a counter has the exact same createdAt, therefore ordering the counts by createdAt may not yeild the correct results.
+
