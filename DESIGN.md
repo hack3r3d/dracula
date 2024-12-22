@@ -34,16 +34,18 @@ But even if you're creating only a simple single counter, your application must 
 The API consists of a couple of basically CRUD functions.
 
 ### createCounter([data]) returns counterId
-Create counter apply data to new counter document and return a UUID.
+Create counter apply data to new counter document and return a counterId.
 
-### count(counterId,  count, [data])
-This updates a counter in the collection associated with the provided counterId. If data is provided, data gets saved on the counter count being saved.
+### count(counterId,  count, [data]) return position
+Update counter in the collection associated with the provided counterId. If data is provided, data gets saved on the counter count being saved. Returns position.
 
-### getCounter(counterId)
-Gets all of the counter counts sorted by position with oldest first.
+### getCounter(counterId, [position]) returns counter[]
+Gets all of the counter counts sorted by position with oldest first. If position is provided, return that one counter.
 
 ## Document
 A counter is a collection of counter documents collated together with a unique id - counterId. 
+
+All documents will have createdAt and updatedAt date timestamp fields.
 
 In the database the data might look something like this.
 ```
@@ -101,5 +103,5 @@ Obviously, the meta data is whatever the application wants to persist for a give
 
 The first counter record is basically creating the counter with a count of 0. In the context of a disc golf scorecard, at this stage, a scorecard has been created but a disc has to yet to be thrown and recorded.
 
-The position data point is used to keep track of the order in which counts are saved to the database. All of these database records will have createdAt and updatedAt fields, but I feel like a specific feild to track effectively order of counter counts is more accurate. It's possible that more than one count for a counter has the exact same createdAt, therefore ordering the counts by createdAt may not yeild the correct results.
+The position data point is used to keep track of the order in which counts are saved to the database. All of these database records will have createdAt and updatedAt fields, but I feel like a specific feild to track effectively order of counter counts is more accurate. It's possible that more than one count for a counter has the exact same createdAt, therefore ordering the counts by createdAt may not yeild the correct results every time.
 
