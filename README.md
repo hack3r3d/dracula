@@ -1,5 +1,5 @@
-# additup
-This is about counting - adding ones.
+# Dracula
+This is about counting - adding ones. It's called Dracula because this is basically a counter and so counter led to thinking Count Dracula.
 
 ## Simple Use Case
 
