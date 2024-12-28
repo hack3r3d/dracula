@@ -1,6 +1,6 @@
-# additup Design
+# Drucula Design
 
-I built additup on top of MongoDB. It's an opinionated decision and this package could really work with any document database, I just happen to like MongoDB and their free tier is really good enough for a lot of small projects. I would be totally happy if someone wanted to update the code to database agnostic and contribute to this project.
+I built Dracula on top of MongoDB. It's an opinionated decision and this package could really work with any document database, I just happen to like MongoDB and their free tier is really good enough for a lot of small projects. I would be totally happy if someone wanted to update the code to database agnostic and contribute to this project.
 
 In MongoDB there is a counters collection. In the counters collection are the counter documents. 
 
