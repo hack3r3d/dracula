@@ -1,6 +1,6 @@
 # Drucula Design
 
-I built Dracula on top of MongoDB. It's an opinionated decision and this package could really work with any document database, I just happen to like MongoDB and their free tier is really good enough for a lot of small projects. I would be totally happy if someone wanted to update the code to database agnostic and contribute to this project.
+I built Dracula on top of MongoDB. It's an opinionated decision and this package could really work with any document database, I just happen to like MongoDB and their free tier is really good enough for a lot of small projects.
 
 In MongoDB there is a counters collection. In the counters collection are the counter documents. 
 
@@ -26,7 +26,9 @@ Counter {
 }
 ```
 
-Then in the application, if you're building something like a disc golf scoring application and you want to track scores for each hole in a round, you would create multiple counters - one for each hole. The key piece of data to make this work is the collatorId and position. The collatorId is a UUID that the application creates and assigns to counter objects. The position is also created by the application. It must be a unique number for the provided collatorId. Position doesn't need to indicate sort or priority within the collection of counters, but it could, it depends on the application. The collatorId and position are the two key data points necessary to retrieve a specific counter from a collection.
+In the application, if you're building something like a disc golf scoring application and you want to track scores for each hole in a round, you would create multiple counters - one for each hole, at least. If your disc golf application tracks shots per hole, you would create a new counter document for each shot recorded. 
+
+The key piece of data to make this work is the collatorId and position. The collatorId is a UUID that the application creates and assigns to counter objects. The position is auto-generated via a MongoDB trigger. is also created by the application. It must be a unique number for the provided collatorId. 
 
 But even if you're creating only a simple single counter, your application must still provide a collatorId and position because it is how you will retrieve all counters. 
 

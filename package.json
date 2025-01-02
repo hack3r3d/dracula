@@ -1,0 +1,27 @@
+{
+  "name": "dracula",
+  "version": "1.0.0",
+  "description": "Dracula is a fancy counter.",
+  "main": "dracula.js",
+  "scripts": {
+    "test": "mocha tests/*.js --timeout=99999"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hack3r3d/dracula.git"
+  },
+  "author": "hack3r3d",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/hack3r3d/dracula/issues"
+  },
+  "homepage": "https://github.com/hack3r3d/dracula#readme",
+  "dependencies": {
+    "dotenv-safe": "^9.1.0",
+    "lodash": "^4.17.21",
+    "mongodb": "^6.12.0"
+  },
+  "devDependencies": {
+    "mocha": "^11.0.1"
+  }
+}
