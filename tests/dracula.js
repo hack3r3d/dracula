@@ -8,7 +8,6 @@ const {ObjectId} = require('mongodb')
 
 beforeEach(async () => {
     try {
-        console.log(process.env.MONGO_DATABASE)
         if (process.env.MONGO_DATABASE.search(/test/) < 0) {
             console.error('You can not run these tests on database that does not include "test" in the name.')
             process.exit(1)
@@ -19,6 +18,8 @@ beforeEach(async () => {
     }
 })
 afterEach(async () => {
+    const d = new Dracula()
+    await d.deleteAll(client)
     await client.close()
 })
 describe('Dracula', () => {
@@ -33,7 +34,8 @@ describe('Dracula', () => {
             const res1 = await dracula.create(client, counter1)
             const insertId1 = res1.insertedId
             assert.equal(ObjectId.isValid(insertId1), true)
-            
+            const countRes = await dracula.compute(client, "meta.test")
+            assert.equal(2, countRes)
         })
     })
     // describe('#read', () => {

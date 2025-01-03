@@ -1,4 +1,4 @@
-const {create, read} = require('./db/mongodb-functions.js')
+const {create, read, compute, deleteAll} = require('./db/mongodb-functions.js')
 
 /**
  * dracula.js is a fancy counter.
@@ -18,8 +18,12 @@ class Dracula {
         return await this.create(client, counter)
     }
 
-    compute = async (client, query) => {
-        return await this.compute(client, query)
+    compute = async (client, countOn) => {
+        return await compute(client, countOn)
+    }
+
+    deleteAll = async(client) => {
+        return await deleteAll(client)
     }
 }
 
