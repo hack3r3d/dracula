@@ -34,7 +34,7 @@ describe('Dracula', () => {
             const res1 = await dracula.create(client, counter1)
             const insertId1 = res1.insertedId
             assert.equal(ObjectId.isValid(insertId1), true)
-            const countRes = await dracula.compute(client, "meta.test")
+            const countRes = await dracula.compute(client, "test")
             assert.equal(2, countRes)
         })
     })

@@ -16,10 +16,11 @@ const read = async (client, collatorId, position = null) => {
 
 /**
  * this method calculates the total count for records that match the countOn param
+ * the countOn value needs to exist in the meta object. 
  * 
  * @param {MongoClient} client 
- * @param {*} countOn 
- * @returns 
+ * @param {String} countOn meta field to match on
+ * @returns int
  */
 const compute = async (client, countOn) => {
   const database = client.db(process.env.MONGO_DATABASE)
@@ -27,13 +28,13 @@ const compute = async (client, countOn) => {
   const agg = [ 
     {
       $match: {
-        [countOn]: {$eq: 1}
+        ["meta." + countOn]: {$eq: 1}
       }
     },
     {
          $group:
            {
-             _id: `"$${countOn}"`,
+             _id: `$meta.${countOn}`,
              count: { $sum: 1 }
            }
     }
@@ -44,7 +45,12 @@ const compute = async (client, countOn) => {
   res = await found.next()
   return res.count
 }
-
+/**
+ * This deletes all of the data from the collection. Obviously, you will want to be smart about
+ * calling this method in your application because it DELETE ALL OF THE DATA FROM THE COLLECTION
+ * 
+ * @param {MongoCli} client 
+ */
 const deleteAll = async (client) => {
   const database = client.db(process.env.MONGO_DATABASE)
   const cursor = database.collection(process.env.MONGO_COLLECTION)
