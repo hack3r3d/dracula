@@ -1,30 +1,31 @@
-const {create, read, compute, deleteAll} = require('./db/mongodb-functions.js')
-
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const mongodb_functions_1 = require("./db/mongodb-functions");
 /**
- * dracula.js is a fancy counter.
- * 
- * What you can do with dracula is create counters with meta data attached.
+ * Dracula is a fancy counter.
+ *
+ * It lets you create counters with metadata attached and compute aggregates
+ * over those counters using MongoDB as the backing store.
  */
 class Dracula {
-    create = async (client, counter) => {
-        return await create(client, counter)
+    constructor(client, config) {
+        this.client = client;
+        this.config = config;
     }
-
-    get = async (client, collatorId, position = null) => {
-        return await read(client, collatorId, position)
+    async create(counter) {
+        return (0, mongodb_functions_1.create)(this.client, this.config, counter);
     }
-
-    count = async (client, counter) => {
-        return await this.create(client, counter)
+    async get(collatorId) {
+        return (0, mongodb_functions_1.read)(this.client, this.config, collatorId);
     }
-
-    compute = async (client, countOn) => {
-        return await compute(client, countOn)
+    async count(counter) {
+        return this.create(counter);
     }
-
-    deleteAll = async(client) => {
-        return await deleteAll(client)
+    async compute(countOn) {
+        return (0, mongodb_functions_1.compute)(this.client, this.config, countOn);
+    }
+    async deleteAll() {
+        return (0, mongodb_functions_1.deleteAll)(this.client, this.config);
     }
 }
-
-module.exports = Dracula
+exports.default = Dracula;

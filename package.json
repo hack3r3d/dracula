@@ -4,7 +4,12 @@
   "description": "Dracula is a fancy counter.",
   "main": "dracula.js",
   "scripts": {
-    "test": "mocha tests/*.js --timeout=99999"
+    "build": "tsc",
+    "test": "npm run build && jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "npm run build && jest --coverage",
+    "lint": "echo 'no linter configured yet' && exit 0",
+    "format": "echo 'no formatter configured yet' && exit 0"
   },
   "repository": {
     "type": "git",
@@ -16,12 +21,20 @@
     "url": "https://github.com/hack3r3d/dracula/issues"
   },
   "homepage": "https://github.com/hack3r3d/dracula#readme",
+  "engines": {
+    "node": "^18 || ^20"
+  },
   "dependencies": {
     "dotenv-safe": "^9.1.0",
-    "lodash": "^4.17.21",
-    "mongodb": "^6.12.0"
+    "mongodb": "^7.0"
   },
   "devDependencies": {
-    "mocha": "^11.0.1"
+    "@types/dotenv-safe": "^9.1.0",
+    "@types/jest": "^29.5.12",
+    "@types/mongodb": "^4.0.7",
+    "@types/node": "^22.9.3",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.2.5",
+    "typescript": "^5.6.0"
   }
 }
