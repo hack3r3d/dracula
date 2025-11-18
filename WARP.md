@@ -4,13 +4,27 @@ This file provides guidance to WARP (warp.dev) when working with code in this re
 
 ## Project overview
 
-This repo is a small Node.js package that implements a "fancy counter" backed by MongoDB. It exposes a single `Dracula` class as the main API and uses Mocha for integration-style tests against a real MongoDB database.
+This repo is a small Node.js package that implements a "fancy counter" with a pluggable storage backend. It exposes a `Dracula` class as the main API and ships with:
+
+- A MongoDB-backed implementation (production-oriented)
+- A SQLite-style in-memory implementation (for tests/experiments)
+
+The public entrypoint is `src/index.ts` / `dist/index.js`, which:
+
+- Exports `Dracula` as the default export
+- Exports `createDraculaFromEnv` and helpers for env-driven configuration
 
 Key files:
-- `dracula.js`: main entrypoint exporting the `Dracula` class.
-- `db/mongodb.js`: shared MongoDB `MongoClient` instance configured via environment variables.
-- `db/mongodb-functions.js`: low-level persistence and aggregation helpers used by `Dracula`.
-- `tests/dracula.js`: Mocha test suite exercising the main counter behavior end-to-end.
+- `src/index.ts`: public entrypoint exporting `Dracula` and `createDraculaFromEnv`.
+- `src/dracula.ts`: main `Dracula` class built around a `CounterStore` interface.
+- `src/createDraculaFromEnv.ts`: factory that selects the storage engine from env vars.
+- `src/db/mongodb.ts`: MongoDB `MongoClient` factory.
+- `src/db/mongodb-functions.ts`: low-level MongoDB persistence and aggregation helpers used by the Mongo store implementation.
+- `src/db/mongo-counter-store.ts`: MongoDB-backed `CounterStore` implementation.
+- `src/db/sqlite-counter-store.ts`: SQLite-oriented `CounterStore` implementation (expects a `SqliteDb`).
+- `src/db/inmemory-sqlite.ts`: minimal in-memory `SqliteDb` used in tests.
+- `tests/dracula.test.ts`: Jest suite covering MongoDB behavior end-to-end.
+- `tests/sqlite-dracula.test.ts`: Jest suite covering the SQLite-style behavior and the env-based factory.
 
 ## Commands
 
@@ -24,115 +38,125 @@ npm install
 
 ### Run the full test suite
 
-Mocha is configured via the `test` script in `package.json` to run all tests under `tests/*.js`.
+Jest is configured via `jest.config.cjs` to run all `*.test.ts` files.
 
 ```bash path=null start=null
 npm test
 ```
 
-Tests expect a MongoDB instance and test-specific environment configuration:
-- `tests/dracula.js` loads env vars from `.env.test` using `dotenv-safe`, with `.env.example` as the schema.
-- Ensure your `.env.test` points to a MongoDB database whose name includes the substring `test`; otherwise the test suite will abort.
+Tests expect environment configuration loaded by `dotenv-safe` from `.env.test` (validated against `.env.example`). For the Mongo-backed tests:
 
-### Run a single test file or customize Mocha invocation
+- `DRACULA_MONGO_DATABASE` must be set and must include the substring `test`.
+- `DRACULA_MONGO_COLLECTION` must be set.
 
-To focus on a single test file or adjust Mocha flags, call Mocha directly instead of going through `npm test`:
-
-```bash path=null start=null
-npx mocha tests/dracula.js --timeout=99999
-```
-
-You can substitute `tests/dracula.js` with any other test file path if more tests are added later.
+`DRACULA_MONGO_CONNECTION` is provided dynamically by `mongodb-memory-server` in the tests themselves.
 
 ### Using the library in a Node REPL or another project
 
-The main API is the `Dracula` class exported from `dracula.js`:
+The main API is the `Dracula` class plus the `createDraculaFromEnv` factory exported from `dist/index.js`.
 
-```bash path=null start=null
-node
-```
-
-Then in the REPL (or in your own code):
+Example REPL session using the Mongo engine explicitly:
 
 ```js path=null start=null
-const Dracula = require('./dracula').default
-const client = require('./db/mongodb').default
-const { collectionConfig } = require('./config')
+const { createMongoClient } = require('./dist/db/mongodb')
+const { collectionConfig } = require('./dist/config')
+const { MongoCounterStore } = require('./dist/db/mongo-counter-store')
+const Dracula = require('./dist').default
 
 ;(async () => {
+  const client = createMongoClient(process.env.DRACULA_MONGO_CONNECTION)
   await client.connect()
-  const d = new Dracula(client, collectionConfig)
+
+  const store = new MongoCounterStore(client, collectionConfig)
+  const d = new Dracula(store)
+
   const counter = { count: 0, meta: { test: 1 } }
   const res = await d.create(counter)
   console.log(res.insertedId)
+
   await d.deleteAll()
   await client.close()
 })()
 ```
 
-This mirrors the pattern used by the test suite: a shared, preconfigured `MongoClient` and collection config are passed into the `Dracula` constructor, and instance methods operate on that configuration.
+Example REPL session using the env-based factory:
+
+```js path=null start=null
+const { createDraculaFromEnv } = require('./dist')
+
+;(async () => {
+  // DRACULA_DB_ENGINE controls which backend is selected ('mongo' or 'sqlite').
+  const { dracula, close } = await createDraculaFromEnv()
+
+  const counter = { count: 0, meta: { test: 1 } }
+  const res = await dracula.create(counter)
+  console.log(res.insertedId)
+
+  await dracula.deleteAll()
+  await close()
+})()
+```
 
 ## Architecture and data model
 
 ### High-level structure
 
-- **Public API layer (`dracula.js`)**
-  - Defines the `Dracula` class, which acts as a thin facade over lower-level MongoDB helper functions.
-  - `Dracula` is constructed with a connected `MongoClient` and a `CollectionConfig` (database + collection name), and its methods operate on that preconfigured context:
-    - `create(counter)`: inserts a new counter document.
-    - `get(collatorId)`: reads documents via `read` and returns a materialized array of matching counters.
+- **Public API layer (`src/dracula.ts`, `src/index.ts`)**
+  - Defines the `Dracula` class, which depends on an abstract `CounterStore` interface instead of a specific database.
+  - The package also exports `createDraculaFromEnv`, which selects a concrete `CounterStore` based on env vars:
+    - `DRACULA_DB_ENGINE` – `'mongo'` (default) or `'sqlite'`.
+    - For Mongo, additional `DRACULA_MONGO_*` env vars are used.
+  - `Dracula` is constructed with a `CounterStore`, and its methods operate on that preconfigured context:
+    - `create(counter)`: inserts a new counter record.
+    - `get(filter)`: reads records via the store and returns a materialized array of matching counters.
     - `count(counter)`: alias that simply calls `create`.
-    - `compute(countOn)`: computes an aggregate count over matching documents.
-    - `deleteAll()`: clears the configured collection.
+    - `compute(countOn)`: computes an aggregate count over matching records.
+    - `deleteAll()`: clears the underlying store.
 
-- **Database helpers (`db/mongodb.js`, `db/mongodb-functions.js`)**
-  - `db/mongodb.js` exports a configured `MongoClient` instance using:
-    - `MONGO_CONNECTION` — MongoDB connection URI.
-    - The client is constructed with the MongoDB Stable API (v1) and exported for reuse.
-  - `db/mongodb-functions.js` encapsulates all MongoDB collection interactions, using envvars to select the database/collection:
-    - `MONGO_DATABASE` — database name (must contain `test` when running the test suite).
-    - `MONGO_COLLECTION` — collection name where counter documents are stored.
-  - Functions:
-    - `create(client, counter)`
-      - Sets `counter.createdAt = new Date()` before inserting.
-      - Inserts into `MONGO_COLLECTION` and returns the `insertOne` result.
-    - `read(client, collatorId)`
-      - Performs `find(collatorId)` and returns a **materialized array of matching counter documents**.
-    - `compute(client, countOn)`
+- **MongoDB helpers and store (`src/db/mongodb*.ts`)**
+  - `src/db/mongodb.ts` exports a `createMongoClient` helper (MongoDB Stable API v1).
+  - `src/db/mongodb-functions.ts` encapsulates MongoDB collection interactions:
+    - `create(client, config, counter)`
+      - Normalizes input, sets `createdAt` if missing, then performs `insertOne`.
+    - `read(client, config, filter)`
+      - Performs `find(filter)` and returns a **materialized array of matching counter documents**.
+    - `compute(client, config, countOn)`
       - Runs an aggregation pipeline:
         - `$match` documents where `meta[countOn] === 1`.
         - `$group` by `meta[countOn]` and compute `count: { $sum: 1 }`.
-      - Reads the first aggregation result and returns `res.count`.
-      - This is used to count how many counter records match a particular metadata flag.
-    - `deleteAll(client)`
+      - Returns the aggregated count or `0`.
+    - `deleteAll(client, config)`
       - Issues `deleteMany({})` against the configured collection, wiping all documents.
+  - `src/db/mongo-counter-store.ts` adapts these helpers to the `CounterStore` interface.
+
+- **SQLite-style helpers and store (`src/db/sqlite-counter-store.ts`)**
+  - Defines a minimal `SqliteDb` interface and a `SqliteCounterStore` implementation of `CounterStore`.
+  - Persists counters into a simple `counters` table with `count`, `created_at`, and JSON-serialized `meta`.
+  - `src/db/inmemory-sqlite.ts` provides an in-memory `SqliteDb` implementation used in tests and for quick experiments.
 
 ### Testing strategy
 
-- Tests in `tests/dracula.js` are **integration-style**:
-  - They use the same `MongoClient` (`db/mongodb.js`) and `Dracula` class as consumers would.
-  - `beforeEach` connects to MongoDB and asserts `MONGO_DATABASE` contains the substring `test` to prevent accidental use of a non-test database.
-  - `afterEach` creates a `Dracula` instance, calls `deleteAll(client)` to clear the collection, then closes the client.
-- The primary test currently covers the `create` + `compute` flow:
-  - Inserts two counter documents with `meta: { test: 1 }` and asserts:
-    - MongoDB returns valid `ObjectId`s for each insert.
-    - `compute(client, "test")` returns `2`.
+- Tests are written with **Jest** (`ts-jest` preset, see `jest.config.cjs`).
+- Mongo-backed tests (`tests/dracula.test.ts`):
+  - Use `mongodb-memory-server` to spin up an in-memory MongoDB instance.
+  - Configure `DRACULA_MONGO_CONNECTION` dynamically from the in-memory server.
+  - Use `DRACULA_MONGO_DATABASE` and `DRACULA_MONGO_COLLECTION` from `.env.test` (with the database name required to include `test`).
+- SQLite-style tests (`tests/sqlite-dracula.test.ts`):
+  - Use `InMemorySqliteDb` + `SqliteCounterStore` to exercise the same `Dracula` API without external services.
+  - Also cover the `createDraculaFromEnv` factory when `DRACULA_DB_ENGINE=sqlite`.
 
-### Environment and configuration expectations
-
-The code relies on the following environment variables, typically provided by `.env.test` (and validated against `.env.example` when running tests):
-
-- `MONGO_CONNECTION`: MongoDB connection URI (used in `db/mongodb.js`).
-- `MONGO_DATABASE`: target database name (must contain `test` when running tests).
-- `MONGO_COLLECTION`: name of the collection storing counter documents.
-
-`dotenv-safe` ensures that the required variables are defined and match the schema described in `.env.example`.
+`dotenv-safe` ensures that required env vars exist and match the schema described in `.env.example`.
 
 ## How future agents should interact with this repo
 
 - When adding new counter-related behavior, prefer to:
-  - Keep the `Dracula` class as the public API surface and delegate new persistence logic to `db/mongodb-functions.js`.
-  - Pass the `MongoClient` explicitly into methods rather than creating new clients in multiple places, to stay consistent with the existing pattern and tests.
+  - Keep the `Dracula` class as the main public API surface and delegate new persistence logic to store implementations that satisfy the `CounterStore` interface.
+  - Avoid creating new `MongoClient` instances in multiple places; reuse the factory in `src/db/mongodb.ts` and pass clients and configs explicitly.
+- When adding new storage backends:
+  - Implement `CounterStore` for the new backend in `src/db/*-counter-store.ts`.
+  - Keep the `CounterStore` interface small and focused so adapters stay simple.
+  - Optionally extend `createDraculaFromEnv` to support a new `DRACULA_DB_ENGINE` value.
 - When expanding tests:
-  - Follow the existing Mocha structure in `tests/dracula.js` with `beforeEach`/`afterEach` managing connection and cleanup.
-  - Reuse the shared `MongoClient` from `db/mongodb.js` and respect the `MONGO_DATABASE` "must include test" guard.
+  - Follow the existing Jest structure in `tests/*.test.ts`.
+  - For Mongo-backed tests, reuse the `mongodb-memory-server` pattern and respect the `DRACULA_MONGO_DATABASE` "must include test" guard.
+  - For non-Mongo stores, add tests similar to `tests/sqlite-dracula.test.ts` that exercise the `Dracula` API via the new store implementation.

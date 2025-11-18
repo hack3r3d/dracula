@@ -1,8 +1,9 @@
 import { MongoClient, ServerApiVersion } from 'mongodb'
+import { ConnectionError } from '../errors'
 
 export const createMongoClient = (uri: string | undefined): MongoClient => {
   if (!uri) {
-    throw new Error('DRACULA_MONGO_CONNECTION is required')
+    throw new ConnectionError('DRACULA_MONGO_CONNECTION is required')
   }
 
   return new MongoClient(uri, {
@@ -13,7 +14,3 @@ export const createMongoClient = (uri: string | undefined): MongoClient => {
     },
   })
 }
-
-const client = createMongoClient(process.env.DRACULA_MONGO_CONNECTION)
-
-export default client

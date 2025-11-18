@@ -10,9 +10,14 @@
     "skipLibCheck": true,
     "declaration": true,
     "declarationMap": true,
-    "outDir": "./",
-    "rootDir": "./"
+    "outDir": "./dist",
+    "rootDir": "./src"
   },
-  "include": ["**/*.ts"],
-  "exclude": ["node_modules"]
+  "include": [
+    "src/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "tests"
+  ]
 }
