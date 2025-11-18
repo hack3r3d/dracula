@@ -38,7 +38,7 @@ The disc-golf-inspired idea is simple: each counter represents an event (like a 
 Install from npm:
 
 ```bash path=null start=null
-npm install dracula
+npm install @halfbaked/dracula
 ```
 
 Dracula targets **Node.js 18+**.
