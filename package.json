@@ -1,7 +1,7 @@
 {
   "name": "dracula",
   "version": "1.0.0",
-  "description": "Dracula is a fancy counter.",
+  "description": "Dracula is a simple counter.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
@@ -51,7 +51,7 @@
     "type": "git",
     "url": "git+https://github.com/hack3r3d/dracula.git"
   },
-  "author": "hack3r3d",
+  "author": "Keith Vance",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/hack3r3d/dracula/issues"
