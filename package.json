@@ -1,5 +1,5 @@
 {
-  "name": "dracula",
+  "name": "@halfbaked/dracula",
   "version": "1.0.0",
   "description": "Dracula is a simple counter.",
   "main": "dist/index.js",
